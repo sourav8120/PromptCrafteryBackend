@@ -69,7 +69,8 @@ const connectDB = async () => {
       bufferCommands: false,
     });
 
-    console.log('✅ MongoDB connected to:', mongoose.connection.name);
+    const dbName = mongoose.connection.name || mongoose.connection?.db?.databaseName || 'unknown';
+    console.log('✅ MongoDB connected to:', dbName);
     return mongooseConnection;
   } catch (err) {
     console.error('MongoDB connection error:', err.message);
@@ -108,6 +109,14 @@ app.get('/api', (req, res) => {
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
+
+// Support direct root requests from Vercel deployments and preview URLs
+app.get('/', (req, res) => {
+  res.json({ status: 'ok', message: 'PromptVault API is running', timestamp: new Date().toISOString() });
+});
+
+app.get('/favicon.ico', (req, res) => res.status(204).end());
+app.get('/favicon.png', (req, res) => res.status(204).end());
 
 // Debug endpoint (only in development)
 if (process.env.NODE_ENV !== 'production') {
