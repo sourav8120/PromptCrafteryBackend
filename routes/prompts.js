@@ -12,6 +12,8 @@ const logPromptRouteError = (route, err) => {
 router.get('/', async (req, res) => {
   try {
     const { search, category, tags, difficulty, aiModel, featured, page = 1, limit = 12, sort = '-createdAt' } = req.query;
+    const pageNum = Math.max(1, parseInt(page, 10) || 1);
+    const limitNum = Math.min(Math.max(1, parseInt(limit, 10) || 12), 100);
 
     let query = { isActive: true };
 
@@ -29,26 +31,29 @@ router.get('/', async (req, res) => {
     if (aiModel) query.aiModel = aiModel;
     if (featured === 'true') query.isFeatured = true;
 
-    const skip = (parseInt(page) - 1) * parseInt(limit);
-    const total = await Prompt.countDocuments(query);
-
-    const prompts = await Prompt.find(query)
-      .populate('category', 'name slug icon color')
-      .sort(sort)
-      .skip(skip)
-      .limit(parseInt(limit))
-      .select('-__v');
+    const skip = (pageNum - 1) * limitNum;
+    const [total, prompts] = await Promise.all([
+      Prompt.countDocuments(query),
+      Prompt.find(query)
+        .populate('category', 'name slug icon color')
+        .sort(sort)
+        .skip(skip)
+        .limit(limitNum)
+        .select('-__v')
+        .lean()
+    ]);
 
     res.json({
       prompts,
       pagination: {
         total,
-        page: parseInt(page),
-        pages: Math.ceil(total / parseInt(limit)),
-        limit: parseInt(limit)
+        page: pageNum,
+        pages: Math.ceil(total / limitNum),
+        limit: limitNum
       }
     });
   } catch (err) {
+    console.error('[Prompts Route] GET / failed', { query: req.query, error: err?.message });
     logPromptRouteError('GET /', err);
     res.status(500).json({ error: 'Server error' });
   }
