@@ -19,6 +19,7 @@ console.log('MONGODB_URI first 50 chars:', process.env.MONGODB_URI?.substring(0,
 console.log('=======================');
 
 const app = express();
+app.set('trust proxy', 1);
 
 // Rate limiting (safe for Vercel/proxies)
 const limiter = rateLimit({
