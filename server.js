@@ -32,13 +32,15 @@ const limiter = rateLimit({
 });
 
 // Middleware
+const allowedOrigins = [
+  'http://localhost:3000',
+  'http://localhost:3001',
+  ...(process.env.FRONTEND_URL?.split(',').map(origin => origin.trim()).filter(Boolean) || []),
+  ...(process.env.ADMIN_URL?.split(',').map(origin => origin.trim()).filter(Boolean) || [])
+];
+
 app.use(cors({
-  origin: [
-    'http://localhost:3000',
-    'http://localhost:3001',
-    process.env.FRONTEND_URL,
-    process.env.ADMIN_URL
-  ].filter(Boolean),
+  origin: allowedOrigins,
   credentials: true
 }));
 app.use(express.json({ limit: '10mb' }));
