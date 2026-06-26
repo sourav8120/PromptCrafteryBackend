@@ -20,10 +20,13 @@ console.log('=======================');
 
 const app = express();
 
-// Rate limiting
+// Rate limiting (safe for Vercel/proxies)
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 200,
+  standardHeaders: true,
+  legacyHeaders: false,
+  trustProxy: 1,
   message: { error: 'Too many requests, please try again later.' }
 });
 
@@ -94,6 +97,11 @@ app.use('/api/subscription', require('./routes/subscription'));
 app.use('/api/categories', require('./routes/categories'));
 app.use('/api/prompts', require('./routes/prompts'));
 app.use('/api/admin', require('./routes/admin'));
+
+// Base API check
+app.get('/api', (req, res) => {
+  res.json({ status: 'ok', message: 'PromptVault API is running', timestamp: new Date().toISOString() });
+});
 
 // Health check
 app.get('/api/health', (req, res) => {
