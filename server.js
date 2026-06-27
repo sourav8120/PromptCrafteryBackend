@@ -39,9 +39,29 @@ const allowedOrigins = [
   ...(process.env.ADMIN_URL?.split(',').map(origin => origin.trim()).filter(Boolean) || [])
 ];
 
+const isAllowedOrigin = (origin) => {
+  if (!origin) return true;
+
+  const normalizedOrigin = origin.toLowerCase();
+  if (allowedOrigins.includes(origin)) return true;
+
+  return normalizedOrigin.includes('localhost') ||
+    normalizedOrigin.includes('127.0.0.1') ||
+    normalizedOrigin.endsWith('.vercel.app') ||
+    normalizedOrigin.endsWith('.now.sh');
+};
+
 app.use(cors({
-  origin: allowedOrigins,
-  credentials: true
+  origin: (origin, callback) => {
+    if (isAllowedOrigin(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Origin not allowed by CORS'));
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
 }));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
