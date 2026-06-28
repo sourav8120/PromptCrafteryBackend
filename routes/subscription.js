@@ -6,11 +6,18 @@ const User = require('../models/User');
 
 const router = express.Router();
 
-// Initialize Razorpay
-const razorpay = new Razorpay({
-  key_id: process.env.RAZORPAY_KEY_ID,
-  key_secret: process.env.RAZORPAY_KEY_SECRET
-});
+const getRazorpayClient = () => {
+  if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
+    return null;
+  }
+
+  return new Razorpay({
+    key_id: process.env.RAZORPAY_KEY_ID,
+    key_secret: process.env.RAZORPAY_KEY_SECRET
+  });
+};
+
+const razorpay = getRazorpayClient();
 
 // Subscription plans (Prices in INR - Indian Rupees)
 const PLANS = {
@@ -96,6 +103,12 @@ router.post('/create-order', async (req, res) => {
 
     const plan = PLANS[planId];
 
+    if (!razorpay) {
+      return res.status(503).json({
+        error: 'Payment gateway is currently unavailable. Please try again later.'
+      });
+    }
+
     try {
       // Create Razorpay order
       // Razorpay requires receipt to be max 40 characters
@@ -154,6 +167,12 @@ router.post('/verify-payment', async (req, res) => {
 
     if (!planId || !PLANS[planId]) {
       return res.status(400).json({ error: 'Invalid plan' });
+    }
+
+    if (!process.env.RAZORPAY_KEY_SECRET) {
+      return res.status(503).json({
+        error: 'Payment gateway is currently unavailable. Please try again later.'
+      });
     }
 
     // Verify signature
